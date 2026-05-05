@@ -2,20 +2,38 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { targetUrl, headers, method = 'GET' } = body;
+    const requestBody = await request.json();
+    const { targetUrl, headers, method = 'GET', body } = requestBody;
 
     if (!targetUrl) {
       return NextResponse.json({ error: 'targetUrl is required' }, { status: 400 });
     }
 
-    const res = await fetch(targetUrl, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+    let res: Response;
+    try {
+      res = await fetch(targetUrl, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: method !== 'GET' ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+    } catch (fetchErr: any) {
+      if (fetchErr.name === 'AbortError') {
+        return NextResponse.json(
+          { error: 'Request timed out after 15 seconds. The upstream API is not responding.' },
+          { status: 504 }
+        );
+      }
+      throw fetchErr;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     const data = await res.text();
     

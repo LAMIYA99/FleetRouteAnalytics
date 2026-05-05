@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect } from "react";
 
-
+// --- Types ---
 interface Trip {
   id: string | number;
   driver: string;
@@ -22,117 +22,115 @@ interface Trip {
   maxSpeedKmh?: number;
   avgSpeedKmh?: number;
   fuelLiters?: number;
-  violations?: { type: string; severity: string; time: string; location?: string }[];
+  violations?: { type: string; severity: string; time: string; location?: any }[];
 }
 
-
-const severity = (score: number) => {
-  if (score >= 80) return { label: "Low", cls: "bg-green-100 text-green-700 border-green-300" };
-  if (score >= 60) return { label: "Medium", cls: "bg-orange-100 text-orange-600 border-orange-300" };
-  return { label: "High risk", cls: "bg-red-100 text-red-600 border-red-300" };
+// --- Helpers ---
+const getScoreSeverity = (score: number) => {
+  if (score >= 80) return { label: "Excellent", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" };
+  if (score >= 60) return { label: "Average", cls: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-500" };
+  return { label: "High Risk", cls: "bg-rose-50 text-rose-700 border-rose-200", dot: "bg-rose-500" };
 };
 
-const fmt = (n: number) => n.toFixed(1);
+const formatNum = (n: number | undefined) => (n !== undefined ? n.toFixed(1) : "—");
 
+// --- Components ---
 function RouteMapPlaceholder() {
   return (
-    <div className="w-full h-full min-h-[160px] bg-gray-50 flex flex-col items-center justify-center gap-2 border border-dashed border-gray-200 rounded">
-      <svg width="32" height="32" fill="none" viewBox="0 0 24 24" className="text-gray-300">
-        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
-      </svg>
-      <span className="text-xs text-gray-400">Route map placeholder</span>
+    <div className="w-full h-full min-h-[180px] bg-slate-50 flex flex-col items-center justify-center gap-3 border border-dashed border-slate-200 rounded-xl transition-colors hover:bg-slate-100/50">
+      <div className="p-3 bg-white rounded-full shadow-sm">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" className="text-slate-400">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
+        </svg>
+      </div>
+      <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Route View Placeholder</span>
     </div>
   );
 }
 
-
 function TripCard({ trip, index }: { trip: Trip; index: number }) {
-  const sev = severity(trip.score);
+  const sev = getScoreSeverity(trip.score);
 
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden mb-5">
-      {/* header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 bg-white flex-wrap">
-        <span className="text-xs font-bold text-gray-400">#{index + 1}</span>
-        <div className="flex items-center gap-1">
-          <span className="bg-gray-800 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm">AZ</span>
-          <span className="bg-gray-100 text-gray-800 text-sm font-bold px-2 py-0.5 border border-gray-300 rounded-sm">
-            {trip.plate || "—"}
-          </span>
+    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden mb-6 shadow-sm hover:shadow-md transition-shadow">
+      {/* Card Header */}
+      <div className="flex items-center gap-4 px-6 py-4 border-b border-slate-100 bg-slate-50/30 flex-wrap">
+        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">TRIP #{index + 1}</span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-slate-900 text-white rounded overflow-hidden">
+             <span className="text-[9px] font-black px-1.5 py-0.5 bg-blue-600">AZ</span>
+             <span className="text-xs font-bold px-2 py-0.5">{trip.plate || "—"}</span>
+          </div>
         </div>
-        <span className="text-sm text-gray-700 font-medium">{trip.driver}</span>
-        <div className="ml-auto flex items-center gap-3 flex-wrap">
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${sev.cls}`}>{sev.label}</span>
-          <span className="text-xs text-gray-400">Safety score</span>
-          <span className={`text-2xl font-bold ${trip.score >= 60 ? "text-gray-800" : "text-red-600"}`}>
-            {trip.score}
-          </span>
+        <span className="text-sm font-semibold text-slate-700">{trip.driver}</span>
+        
+        <div className="ml-auto flex items-center gap-4">
+          <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[11px] font-bold ${sev.cls}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${sev.dot} animate-pulse`} />
+            {sev.label}
+          </div>
+          <div className="flex flex-col items-end leading-none">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Safety Score</span>
+            <span className={`text-2xl font-black ${trip.score >= 60 ? "text-slate-900" : "text-rose-600"}`}>
+              {trip.score}
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="flex bg-white flex-col md:flex-row">
-        <div className="flex-1 p-4">
-          <div className="flex gap-6 mb-5 flex-wrap">
-            <div className="flex-1 min-w-[180px]">
-              <p className="text-sm font-semibold text-gray-800 mb-2">Route</p>
-              <table className="w-full text-xs">
-                <tbody>
-                  {[
-                    ["Date", trip.date],
-                    ["Start time", trip.startTime],
-                    ["End time", trip.endTime],
-                    ["From", trip.from],
-                    ["To", trip.to],
-                    ["Distance", `${fmt(trip.distanceKm)} km`],
-                    ["Duration", `${trip.durationMin} min`],
-                    ["Result", trip.result],
-                  ].map(([k, v]) => (
-                    <tr key={k}>
-                      <td className="text-gray-400 py-0.5 pr-3 whitespace-nowrap">{k}</td>
-                      <td className="text-gray-800 font-medium">{v}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      <div className="flex flex-col lg:flex-row">
+        <div className="flex-1 p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Route Details</h4>
+              <div className="space-y-3">
+                {[
+                  { label: "Date", value: trip.date },
+                  { label: "Timeline", value: `${trip.startTime} → ${trip.endTime}` },
+                  { label: "From", value: trip.from, isDim: true },
+                  { label: "To", value: trip.to, isDim: true },
+                  { label: "Distance", value: `${formatNum(trip.distanceKm)} km`, isBold: true },
+                  { label: "Duration", value: `${trip.durationMin} min`, isBold: true },
+                  { label: "Result", value: trip.result, badge: true },
+                ].map((item, i) => (
+                  <div key={i} className="flex justify-between text-sm items-baseline border-b border-slate-50 pb-1">
+                    <span className="text-slate-400 text-xs">{item.label}</span>
+                    <span className={`${item.isDim ? "text-slate-500 text-xs italic" : "text-slate-800 font-medium"} ${item.isBold ? "text-blue-600" : ""} ${item.badge ? "bg-slate-100 px-2 py-0.5 rounded text-[10px] font-bold" : ""}`}>
+                      {item.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="flex-1 min-w-[180px]">
-              <p className="text-sm font-semibold text-gray-800 mb-2">Performance</p>
-              <table className="w-full text-xs">
-                <tbody>
-                  {[
-                    ["Wait duration", trip.waitDuration],
-                    ["Avg / max speed", `${trip.avgSpeedKmh ?? "—"} / ${trip.maxSpeedKmh ?? "—"} km/h`],
-                    ["Idle time", `${trip.idlingSec} sec`],
-                    ["Fuel impact", trip.fuelLiters != null ? `${fmt(trip.fuelLiters)} L` : "—"],
-                  ].map(([k, v]) => (
-                    <tr key={k}>
-                      <td className="text-gray-400 py-0.5 pr-3 whitespace-nowrap">{k}</td>
-                      <td className="text-gray-800 font-medium text-right">{v}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="flex flex-col">
+              <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Telemetry Metrics</h4>
+              <div className="space-y-3 mb-6">
+                 {[
+                  { label: "Idle Time", value: `${trip.idlingSec} sec` },
+                  { label: "Avg / Max Speed", value: `${formatNum(trip.avgSpeedKmh)} / ${formatNum(trip.maxSpeedKmh)} km/h` },
+                  { label: "Fuel Est.", value: trip.fuelLiters ? `${formatNum(trip.fuelLiters)} L` : "—" },
+                  { label: "Wait Time", value: trip.waitDuration },
+                ].map((item, i) => (
+                  <div key={i} className="flex justify-between text-sm items-baseline border-b border-slate-50 pb-1">
+                    <span className="text-slate-400 text-xs">{item.label}</span>
+                    <span className="text-slate-800 font-medium">{item.value}</span>
+                  </div>
+                ))}
+              </div>
 
               {trip.violations && trip.violations.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-sm font-semibold text-gray-800 mb-2">Events &amp; Violations</p>
-                  <div className="space-y-1">
+                <div>
+                  <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Safety Events</h4>
+                  <div className="space-y-2">
                     {trip.violations.map((v, i) => {
-                      const vc =
-                        v.severity === "High"
-                          ? "bg-red-100 text-red-600 border-red-300"
-                          : v.severity === "Medium"
-                          ? "bg-orange-100 text-orange-500 border-orange-300"
-                          : "bg-gray-100 text-gray-500 border-gray-300";
+                      const vc = v.severity === "High" ? "text-rose-600 bg-rose-50" : v.severity === "Medium" ? "text-amber-600 bg-amber-50" : "text-slate-500 bg-slate-50";
                       return (
-                        <div key={i} className="flex items-center gap-2 text-xs text-gray-600 flex-wrap">
-                          <span className="text-gray-400">{v.time}</span>
-                          <span className={`inline-block px-2 py-0.5 rounded border text-xs font-medium ${vc}`}>
-                            {v.severity}
-                          </span>
-                          <span className="font-medium text-gray-700">{v.type}</span>
-                          {v.location && <span className="ml-auto text-gray-400">{v.location}</span>}
+                        <div key={i} className="flex items-center gap-3 p-2 rounded-lg border border-slate-50 text-[11px]">
+                          <span className="text-slate-400 tabular-nums">{v.time}</span>
+                          <span className={`px-1.5 py-0.5 rounded font-bold uppercase text-[9px] ${vc}`}>{v.severity}</span>
+                          <span className="font-semibold text-slate-700">{v.type}</span>
+                          {v.location && <span className="ml-auto text-slate-400 truncate max-w-[100px]">{v.location}</span>}
                         </div>
                       );
                     })}
@@ -143,377 +141,520 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
           </div>
         </div>
 
-        <div className="w-full md:w-72 border-t md:border-t-0 md:border-l border-gray-100 p-3">
-          <p className="text-[10px] text-gray-400 mb-2">Route map + violation markers</p>
-          <RouteMapPlaceholder />
+        <div className="lg:w-80 bg-slate-50/50 p-4 border-t lg:border-t-0 lg:border-l border-slate-100 flex flex-col">
+          <div className="flex justify-between items-center mb-3">
+             <h4 className="text-[10px] font-bold text-slate-400 uppercase">Trajectory Map</h4>
+             <button className="text-[10px] text-blue-600 font-bold hover:underline">View Fullscreen</button>
+          </div>
+          <div className="flex-1">
+            <RouteMapPlaceholder />
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
+// --- HTML Export Builder ---
+function buildExportHtml(trips: Trip[], meta: { driver: string; generated: string }): string {
+  const totalDist = trips.reduce((s, t) => s + t.distanceKm, 0);
+  const avgScore = trips.length ? Math.round(trips.reduce((s, t) => s + t.score, 0) / trips.length) : 0;
 
-function buildHtml(trips: Trip[], meta: { from: string; to: string; generated: string }): string {
-  const tripRows = trips
-    .map(
-      (t, i) => `
-    <div class="card">
-      <div class="card-header">
-        <span class="idx">#${i + 1}</span>
-        <span class="plate">AZ ${t.plate}</span>
-        <span class="driver">${t.driver}</span>
-        <span class="score-label">Safety score</span>
-        <span class="score ${t.score < 60 ? "score-bad" : ""}">${t.score}</span>
+  const tripBlocks = trips.map((t, i) => `
+    <div class="trip-card">
+      <div class="trip-header">
+        <div class="trip-id">TRIP #${i + 1}</div>
+        <div class="plate">AZ ${t.plate}</div>
+        <div class="driver-name">${t.driver}</div>
+        <div class="trip-score">
+          <span class="score-label">SCORE</span>
+          <span class="score-val ${t.score < 60 ? "critical" : ""}">${t.score}</span>
+        </div>
       </div>
-      <div class="card-body">
-        <table>
-          <tr><td class="k">Date</td><td>${t.date}</td><td class="k">Start</td><td>${t.startTime}</td></tr>
-          <tr><td class="k">End</td><td>${t.endTime}</td><td class="k">Wait</td><td>${t.waitDuration}</td></tr>
-          <tr><td class="k">From</td><td>${t.from}</td><td class="k">To</td><td>${t.to}</td></tr>
-          <tr><td class="k">Distance</td><td>${t.distanceKm.toFixed(1)} km</td><td class="k">Duration</td><td>${t.durationMin} min</td></tr>
-          <tr><td class="k">Idle time</td><td>${t.idlingSec} sec</td><td class="k">Result</td><td>${t.result}</td></tr>
-          ${t.maxSpeedKmh != null ? `<tr><td class="k">Avg/Max speed</td><td>${t.avgSpeedKmh ?? "—"}/${t.maxSpeedKmh} km/h</td><td class="k">Fuel</td><td>${t.fuelLiters != null ? t.fuelLiters.toFixed(1) + " L" : "—"}</td></tr>` : ""}
-        </table>
-        ${
-          t.violations && t.violations.length > 0
-            ? `<div class="violations"><strong>Events &amp; Violations:</strong><ul>${t.violations
-                .map((v) => `<li><span class="sev sev-${v.severity.toLowerCase()}">${v.severity}</span> ${v.time} — ${v.type}${v.location ? " · " + v.location : ""}</li>`)
-                .join("")}</ul></div>`
-            : ""
-        }
-        <div class="map-placeholder">[ Route map placeholder ]</div>
+      <div class="trip-grid">
+        <div class="col">
+          <h3>Route Info</h3>
+          <div class="row"><span>Date</span><strong>${t.date}</strong></div>
+          <div class="row"><span>From</span><strong>${t.from}</strong></div>
+          <div class="row"><span>To</span><strong>${t.to}</strong></div>
+          <div class="row"><span>Distance</span><strong>${t.distanceKm.toFixed(1)} km</strong></div>
+        </div>
+        <div class="col">
+          <h3>Telemetry</h3>
+          <div class="row"><span>Start / End</span><strong>${t.startTime} - ${t.endTime}</strong></div>
+          <div class="row"><span>Duration</span><strong>${t.durationMin} min</strong></div>
+          <div class="row"><span>Max Speed</span><strong>${t.maxSpeedKmh ?? "—"} km/h</strong></div>
+          <div class="row"><span>Fuel Est.</span><strong>${t.fuelLiters ? t.fuelLiters.toFixed(1) + " L" : "—"}</strong></div>
+        </div>
       </div>
-    </div>`
-    )
-    .join("\n");
+      ${t.violations?.length ? `
+      <div class="violations">
+        <h3>Safety Events</h3>
+        <ul>
+          ${t.violations.map(v => `<li><span class="sev-${v.severity.toLowerCase()}">${v.severity}</span> ${v.time} — ${v.type}</li>`).join("")}
+        </ul>
+      </div>` : ""}
+    </div>
+  `).join("");
 
-  return `<!DOCTYPE html>
-<html lang="az">
+  return `
+<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GeekBro MMC — Fleet Route Analytics Report</title>
+  <meta charset="UTF-8">
+  <title>Fleet Analytics Report — ${meta.driver || "All Drivers"}</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; color: #1a1a1a; background: #fff; padding: 32px; }
-    .header { display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 20px; border-bottom: 2px solid #e5e7eb; margin-bottom: 24px; }
-    .header-left h1 { font-size: 26px; font-weight: 800; color: #111; margin: 4px 0 2px; }
-    .header-left .company { font-size: 13px; color: #6b7280; }
-    .header-left .sub { font-size: 11px; color: #9ca3af; margin-top: 2px; }
-    .header-right { text-align: right; font-size: 12px; color: #6b7280; }
-    .header-right .date-range { font-weight: 600; color: #374151; }
-    .section-title { font-size: 15px; font-weight: 700; color: #111; margin-bottom: 16px; }
-    .total { font-size: 12px; color: #9ca3af; margin-bottom: 20px; }
-    .card { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 20px; page-break-inside: avoid; }
-    .card-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #e5e7eb; background: #fff; flex-wrap: wrap; }
-    .idx { font-size: 11px; color: #9ca3af; font-weight: 700; }
-    .plate { background: #1f2937; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
-    .driver { font-size: 13px; color: #374151; font-weight: 600; }
-    .score-label { margin-left: auto; font-size: 11px; color: #9ca3af; }
-    .score { font-size: 22px; font-weight: 800; color: #1a1a1a; }
-    .score-bad { color: #dc2626; }
-    .card-body { padding: 14px; }
-    table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 10px; }
-    td { padding: 3px 6px; vertical-align: top; }
-    td.k { color: #9ca3af; width: 90px; }
-    .violations { margin-top: 10px; font-size: 11px; }
-    .violations strong { display: block; margin-bottom: 4px; color: #374151; }
-    .violations ul { list-style: none; display: flex; flex-direction: column; gap: 3px; }
-    .sev { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; }
-    .sev-high { background: #fee2e2; color: #dc2626; }
-    .sev-medium { background: #ffedd5; color: #ea580c; }
-    .sev-low { background: #f0fdf4; color: #16a34a; }
-    .map-placeholder { margin-top: 12px; height: 80px; border: 1px dashed #d1d5db; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #d1d5db; font-size: 11px; }
-    .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; }
-    @media print { body { padding: 16px; } .card { break-inside: avoid; } }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f1f5f9; color: #1e293b; padding: 40px; }
+    .container { max-width: 900px; margin: 0 auto; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #f1f5f9; padding-bottom: 24px; margin-bottom: 32px; }
+    .company { font-size: 14px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+    h1 { margin: 8px 0; font-size: 32px; color: #0f172a; }
+    .meta { font-size: 12px; color: #94a3b8; }
+    .summary-grid { display: flex; gap: 20px; margin-bottom: 40px; }
+    .stat { flex: 1; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #f1f5f9; }
+    .stat label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 8px; }
+    .stat span { font-size: 24px; font-weight: 800; color: #0f172a; }
+    .trip-card { border: 1px solid #f1f5f9; border-radius: 12px; margin-bottom: 24px; overflow: hidden; page-break-inside: avoid; }
+    .trip-header { background: #f8fafc; padding: 12px 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #f1f5f9; }
+    .trip-id { font-size: 10px; font-weight: 800; color: #94a3b8; }
+    .plate { background: #0f172a; color: white; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+    .driver-name { font-size: 14px; font-weight: 600; }
+    .trip-score { margin-left: auto; text-align: right; }
+    .score-label { font-size: 9px; color: #94a3b8; font-weight: 800; display: block; }
+    .score-val { font-size: 20px; font-weight: 800; color: #059669; }
+    .score-val.critical { color: #dc2626; }
+    .trip-grid { display: flex; padding: 20px; gap: 40px; }
+    .col { flex: 1; }
+    h3 { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #94a3b8; margin-bottom: 12px; }
+    .row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+    .row span { color: #64748b; }
+    .violations { padding: 0 20px 20px; border-top: 1px solid #f8fafc; }
+    .violations ul { list-style: none; padding: 0; margin: 0; }
+    .violations li { font-size: 12px; margin-bottom: 4px; color: #475569; }
+    .sev-high { color: #dc2626; font-weight: 700; }
+    .sev-medium { color: #d97706; font-weight: 700; }
+    .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 20px; }
+    @media print { body { padding: 0; background: white; } .container { box-shadow: none; padding: 0; } }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="header-left">
-      <div class="company">GeekBro MMC</div>
-      <h1>Fleet Route Analytics Report</h1>
-      <div class="sub">Client: Full Company Name · AI fleet telematics</div>
+  <div class="container">
+    <div class="header">
+      <div>
+        <div class="company">GeekBro MMC</div>
+        <h1>Fleet Analytics Report</h1>
+        <div class="meta">Subject: ${meta.driver || "Full Fleet Analysis"}</div>
+      </div>
+      <div style="text-align: right">
+        <div class="meta">Report ID: GB-${Math.random().toString(36).substr(2, 9).toUpperCase()}</div>
+        <div class="meta">Generated: ${meta.generated}</div>
+      </div>
     </div>
-    <div class="header-right">
-      <div class="date-range">${meta.from} — ${meta.to}</div>
-      <div>Generated: ${meta.generated}</div>
+
+    <div class="summary-grid">
+      <div class="stat"><label>Total Routes</label><span>${trips.length}</span></div>
+      <div class="stat"><label>Total Distance</label><span>${totalDist.toFixed(1)} km</span></div>
+      <div class="stat"><label>Avg Safety Score</label><span>${avgScore}</span></div>
+    </div>
+
+    ${tripBlocks}
+
+    <div class="footer">
+      GeekBro AI Fleet Telematics System &copy; 2026. This report is automatically generated for authorized personnel only.
     </div>
   </div>
-
-  <div class="section-title">Driver Trips (${trips.length} routes)</div>
-  <div class="total">Total trips in selected period: ${trips.length}</div>
-
-  ${tripRows}
-
-  <div class="footer">Generated by GeekBro MMC AI fleet telematics system · ${meta.generated}</div>
 </body>
-</html>`;
+</html>
+  `;
 }
 
-
-export default function FleetReport() {
-  const [apiUrl, setApiUrl] = useState("/api/mock");
-  const [token, setToken] = useState("");
-  const [driver, setDriver] = useState("");
-
+// --- Main Component ---
+export default function FleetAnalytics() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [reportUrl, setReportUrl] = useState("https://dev-app.geekbro.ai/be-service/drivers/45fc54d7-2325-486a-b34e-46ab27461190/trips?page=0&size=100");
+  const [token, setToken] = useState("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJsYW1peWVhbGl6YWRlIiwiY29tcGFueUlkIjoiYzM5ODM1YWUtNTQwOC00YmQ1LTg4N2EtNjZkNWZhNzhkZWZiIiwicm9sZSI6IlRFQ0hfQURNSU4iLCJleHAiOjE3Nzc5OTQwNDl9.PxnA5kd2bLJ8eGvVghlf3JywL_BOGTOt5AZ0VjoVr6c");
+  
+  const [driverFilter, setDriverFilter] = useState("");
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [lastFetched, setLastFetched] = useState<string | null>(null);
+  const [isApiDown, setIsApiDown] = useState(false);
 
-  const reportRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (token) {
+       setIsLoggedIn(true);
+    }
+  }, [token]);
 
-  async function fetchReport() {
-    setLoading(true);
-    setError(null);
+  const handleLogout = () => {
+    setToken("");
+    setIsLoggedIn(false);
     setTrips([]);
+  };
 
+  const loadMockData = async () => {
+    setIsLoading(true);
+    setErrorMsg(null);
+    setIsApiDown(false);
     try {
       const params = new URLSearchParams();
-      if (driver) params.append("driver", driver);
-
-      const targetUrl = `${apiUrl}?${params.toString()}`;
-      const isLocal = apiUrl.startsWith('/');
-      
-      let res;
-      if (isLocal) {
-        res = await fetch(targetUrl, {
-          method: 'GET',
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
-      } else {
-        res = await fetch('/api/proxy', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            targetUrl,
-            method: 'GET',
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          }),
-        });
-      }
-
-      if (!res.ok) {
-        let errDetails = res.statusText;
-        try {
-          const errData = await res.json();
-          errDetails = errData.error || errData.details?.error || errDetails;
-        } catch (e) {}
-        throw new Error(`HTTP ${res.status}: ${errDetails}`);
-      }
-
-      const json = await res.json();
-
-    
-      const raw: Trip[] = Array.isArray(json)
-        ? json
-        : Array.isArray(json.data)
-        ? json.data
-        : Array.isArray(json.trips)
-        ? json.trips
-        : Array.isArray(json.routes)
-        ? json.routes
-        : [];
-
-      if (raw.length === 0) {
-        setError("API returned no trips for the selected period.");
-      } else {
-        setTrips(raw);
-        setFetchedAt(new Date().toLocaleString("en-GB"));
-      }
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
+      if (driverFilter) params.append("driver", driverFilter);
+      const res = await fetch(`/api/mock?${params.toString()}`);
+      const result = await res.json();
+      setTrips(result.data || []);
+      setLastFetched(new Date().toLocaleString("en-GB", { dateStyle: 'medium', timeStyle: 'short' }) + " (mock)");
+    } catch (e: any) {
+      setErrorMsg(e.message);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }
+  };
 
-  // ── download HTML ──
-  function downloadHtml() {
-    const html = buildHtml(trips, {
-      from: "—",
-      to: "—",
-      generated: fetchedAt ?? new Date().toLocaleString("en-GB"),
+  const fetchData = async () => {
+    setIsLoading(true);
+    setErrorMsg(null);
+    setIsApiDown(false);
+    try {
+      // Extract driver ID from URL if possible, otherwise use default from curl
+      const driverIdMatch = reportUrl.match(/\/drivers\/([^\/]+)\//);
+      const driverId = driverIdMatch ? driverIdMatch[1] : "45fc54d7-2325-486a-b34e-46ab27461190";
+
+      const response = await fetch('/api/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetUrl: reportUrl,
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: {
+            id: driverId,
+            movementAtFrom: 1777838400000,
+            movementAtTill: 1778011199999
+          }
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        if (response.status === 401) {
+          setErrorMsg("Token expired or invalid. Please provide a fresh token.");
+          return;
+        }
+        if (response.status === 504) {
+          setIsApiDown(true);
+          setErrorMsg("The GeekBro API is not responding (timeout). Use mock data to preview the dashboard.");
+          return;
+        }
+        throw new Error(result.error || result.details?.error || `Fetch failed: ${response.statusText}`);
+      }
+
+      // --- Robust Data Parsing ---
+      let rawTrips: any[] | null = null;
+
+      // 1. Check if direct array
+      if (Array.isArray(result)) {
+        rawTrips = result;
+      } 
+      // 2. Check common fields
+      else if (Array.isArray(result.data)) {
+        rawTrips = result.data;
+      }
+      else if (Array.isArray(result.trips)) {
+        rawTrips = result.trips;
+      }
+      else if (Array.isArray(result.items)) {
+        rawTrips = result.items;
+      }
+      // 3. Recursive search for any array in the response (max depth 2)
+      else {
+        const findArray = (obj: any): any[] | null => {
+          if (!obj || typeof obj !== 'object') return null;
+          // Check top level
+          const topArr = Object.values(obj).find(v => Array.isArray(v));
+          if (topArr) return topArr as any[];
+          
+          // Check one level deeper
+          for (const key in obj) {
+            if (obj[key] && typeof obj[key] === 'object') {
+              const innerArr = Object.values(obj[key]).find(v => Array.isArray(v));
+              if (innerArr) return innerArr as any[];
+            }
+          }
+          return null;
+        };
+        rawTrips = findArray(result);
+      }
+
+      if (!rawTrips) {
+        console.error("API Response Structure:", result);
+        throw new Error(`Data format error: Received JSON but couldn't find an array of trips. Keys found: ${Object.keys(result).join(", ")}`);
+      }
+
+      console.log("GeekBro API Response:", result);
+      setTrips(rawTrips);
+      setLastFetched(new Date().toLocaleString("en-GB", { dateStyle: 'medium', timeStyle: 'short' }));
+    } catch (e: any) {
+      setErrorMsg(e.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDownload = () => {
+    const html = buildExportHtml(safeTrips as any, {
+      driver: driverFilter,
+      generated: lastFetched || new Date().toLocaleString(),
     });
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `fleet-report-all_all.html`;
-    a.click();
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `GeekBro-FleetReport-${new Date().toISOString().split('T')[0]}.html`;
+    link.click();
     URL.revokeObjectURL(url);
-  }
+  };
 
-  // ── stats ──
-  const totalKm = trips.reduce((s, t) => s + t.distanceKm, 0);
-  const avgScore = trips.length
-    ? Math.round(trips.reduce((s, t) => s + t.score, 0) / trips.length)
-    : 0;
-  const highRisk = trips.filter((t) => t.score < 60).length;
+  const safeTrips = (trips || []).map((t: any) => {
+    // Helper to extract value from potential string/number
+    const num = (v: any): number => {
+      if (typeof v === 'number') return isNaN(v) ? 0 : v;
+      if (typeof v === 'string') {
+        const p = parseFloat(v);
+        return isNaN(p) ? 0 : p;
+      }
+      return 0;
+    };
+    
+    // Helper to format address objects safely
+    const addr = (v: any): string => {
+      if (!v) return "—";
+      if (typeof v === 'string') return v;
+      if (typeof v === 'object') {
+        try {
+          if (v.fullAddress) return String(v.fullAddress);
+          if (v.address) return typeof v.address === 'object' ? addr(v.address) : String(v.address);
+          const parts = [v.city, v.settlement, v.street, v.house].filter(p => p && typeof p === 'string');
+          if (parts.length > 0) return parts.join(", ");
+          return JSON.stringify(v);
+        } catch (e) {
+          return "Address Error";
+        }
+      }
+      return String(v);
+    };
+
+    const driverName = t.driver?.name || t.driver?.fullName || "Driver #" + (reportUrl.match(/\/drivers\/([^\/]+)\//)?.[1]?.slice(-4) || "0000");
+    const plateVal = t.vehicle?.plateNumber || t.vehicle?.plate || t.vehicle_plate || "—";
+
+    return {
+      ...t,
+      driver: String(driverName),
+      plate: String(plateVal),
+      score: num(t.currentScoring || t.totalScore || 0),
+      distanceKm: num(t.km || t.distanceKm || t.distance || 0),
+      durationMin: num(t.time || t.durationMin || t.duration || 0),
+      idlingSec: num(t.idling || t.idlingSec || 0),
+      startTime: t.startGpsPoint?.timestamp ? new Date(t.startGpsPoint.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—",
+      endTime: t.finishGpsPoint?.timestamp ? new Date(t.finishGpsPoint.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—",
+      date: t.startGpsPoint?.timestamp ? new Date(t.startGpsPoint.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "—",
+      from: addr(t.startAddress || t.from),
+      to: addr(t.finishAddress || t.to),
+      result: t.result || (t.indicator === false ? "Success" : "Completed"),
+      violations: (t.penalties > 0 && !t.violations) ? [{ type: "Safety Violation", severity: "High", time: "During Trip", location: "See Map" }] : (t.violations || []).map((v: any) => ({
+        ...v,
+        type: String(v.type || "Violation"),
+        severity: String(v.severity || "High"),
+        time: String(v.time || "—"),
+        location: addr(v.location || v.address)
+      }))
+    };
+  });
+
+  const totalDist = safeTrips.reduce((s, t) => s + (t.distanceKm || 0), 0);
+  const avgScore = safeTrips.length ? Math.round(safeTrips.reduce((s, t) => s + (t.score || 0), 0) / safeTrips.length) : 0;
+  const highRiskCount = safeTrips.filter(t => (t.score || 0) < 60).length;
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-5xl mx-auto px-6 py-6">
-
-        {/* ── HEADER ── */}
-        <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-blue-100">
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        
+        <header className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
+          <div className="flex items-center gap-6">
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+              <div className="relative bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
+                <Image src="/logo.png" width={64} height={64} alt="GeekBro" className="object-contain" />
+              </div>
+            </div>
+            <div>
+              <h2 className="text-sm font-black text-blue-600 uppercase tracking-[0.2em]">Telemetry Engine</h2>
+                <h1 className="text-4xl font-black tracking-tight text-slate-900 leading-[0.9]">
+                  Fleet Analytics <span className="text-slate-400">Reports</span>
+                </h1>
+            </div>
+          </div>
           <div className="flex items-center gap-4">
-            <Image src="/logo.png" width={80} height={80} alt="GeekBro logo" />
-            <div>
-              <p className="text-sm text-gray-500 font-medium">GeekBro MMC</p>
-              <h1 className="text-3xl font-bold text-gray-900 leading-tight">
-                Fleet Route Analytics Report
-              </h1>
-              <p className="text-xs text-gray-400 mt-1">
-                Client: Full Company Name · Fleet group: Logistics / Baku
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            {fetchedAt && (
-              <p className="text-sm text-gray-600 font-medium">
-                All dates
-              </p>
-            )}
-            <p className="text-xs text-gray-400 mt-1">AI fleet telematics</p>
-          </div>
-        </div>
-
-        <hr className="border-gray-200 mb-6" />
-
-        {/* ── API CONFIG FORM ── */}
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-          <h2 className="text-sm font-bold text-gray-700 mb-3">Report Configuration</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="md:col-span-2">
-              <label className="block text-xs text-gray-500 mb-1">API Endpoint URL</label>
-              <input
-                type="text"
-                value={apiUrl}
-                onChange={(e) => setApiUrl(e.target.value)}
-                placeholder="https://dev-app.geekbro.ai/api/reports/driver-trips"
-                className="w-full border border-gray-200 rounded px-3 py-2 text-xs text-gray-700 focus:outline-none focus:border-gray-400"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-xs text-gray-500 mb-1">Bearer Token</label>
-              <input
-                type="password"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder="eyJhbGci..."
-                className="w-full border border-gray-200 rounded px-3 py-2 text-xs text-gray-700 focus:outline-none focus:border-gray-400"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Driver (optional)</label>
-              <input
-                type="text"
-                value={driver}
-                onChange={(e) => setDriver(e.target.value)}
-                placeholder="Driver name or ID"
-                className="w-full border border-gray-200 rounded px-3 py-2 text-xs text-gray-700 focus:outline-none focus:border-gray-400"
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-3 mt-4 flex-wrap">
-            <button
-              id="btn-generate-report"
-              onClick={fetchReport}
-              disabled={loading}
-              className="px-5 py-2 bg-gray-900 text-white text-xs font-semibold rounded hover:bg-gray-700 disabled:opacity-50 transition-colors"
-            >
-              {loading ? "Fetching…" : "Generate Report"}
-            </button>
-
-            {trips.length > 0 && (
-              <button
-                id="btn-download-html"
-                onClick={downloadHtml}
-                className="px-5 py-2 bg-blue-600 text-white text-xs font-semibold rounded hover:bg-blue-500 transition-colors flex items-center gap-2"
-              >
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
-                  <path d="M12 16l-5-5h3V4h4v7h3l-5 5z" fill="currentColor"/>
-                  <path d="M5 20h14v-2H5v2z" fill="currentColor"/>
+             <div className="text-right hidden md:block">
+               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Session Active</p>
+               <p className="text-sm font-bold text-emerald-600 flex items-center gap-1.5">
+                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                 Connected
+               </p>
+             </div>
+             <button 
+                onClick={handleLogout}
+                className="bg-white border border-slate-200 p-2.5 rounded-xl hover:bg-slate-50 transition-all shadow-sm text-slate-400 hover:text-rose-600"
+                title="Update Token"
+             >
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                   <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                Download HTML
-              </button>
-            )}
+             </button>
           </div>
+        </header>
 
-          {error && (
-            <div className="mt-3 px-3 py-2 bg-red-50 border border-red-200 rounded text-xs text-red-600">
-              {error}
+        <section className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xl shadow-slate-200/50 mb-10 relative overflow-hidden">
+           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-50 pointer-events-none" />
+           
+           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+              <div className="lg:col-span-8 space-y-6">
+                 <div>
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Report API Configuration</label>
+                    <div className="flex gap-2">
+                       <input 
+                          type="text" 
+                          value={reportUrl} 
+                          onChange={(e) => setReportUrl(e.target.value)}
+                          className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                          placeholder="API Endpoint"
+                       />
+                    </div>
+                 </div>
+                 <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-500"/> Host: {new URL(reportUrl).hostname}</span>
+                    <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"/> Auth: Token Active</span>
+                 </div>
+              </div>
+
+              <div className="lg:col-span-4 flex flex-col justify-end gap-3">
+                 <button 
+                    onClick={fetchData}
+                    disabled={isLoading}
+                    className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed group flex items-center justify-center gap-2"
+                 >
+                    {isLoading ? <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : (
+                      <>
+                        <span>RUN ANALYTICS ENGINE</span>
+                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" className="group-hover:translate-x-1 transition-transform">
+                           <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </>
+                    )}
+                 </button>
+                 
+                 {trips.length > 0 && (
+                   <div className="flex flex-col gap-2">
+                     <button 
+                        onClick={handleDownload}
+                        className="w-full bg-white border-2 border-blue-600 text-blue-600 font-black py-3.5 rounded-2xl hover:bg-blue-50 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                     >
+                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                          <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        DOWNLOAD PDF REPORT
+                     </button>
+                     <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(JSON.stringify(trips, null, 2));
+                          alert("JSON copied to clipboard!");
+                        }}
+                        className="w-full bg-slate-100 text-slate-600 font-bold py-2 rounded-xl hover:bg-slate-200 transition-all text-xs flex items-center justify-center gap-2"
+                     >
+                        COPY RAW DATA
+                     </button>
+                   </div>
+                 )}
+              </div>
+           </div>
+
+           {errorMsg && (
+             <div className="mt-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl">
+               <div className="flex items-start gap-3 text-rose-600 text-sm font-bold">
+                 <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20" className="shrink-0 mt-0.5">
+                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                 </svg>
+                 <span>{errorMsg}</span>
+               </div>
+               {isApiDown && (
+                 <button
+                   onClick={loadMockData}
+                   className="mt-3 ml-8 bg-rose-600 text-white text-xs font-black px-4 py-2 rounded-xl hover:bg-rose-700 transition-all"
+                 >
+                   LOAD MOCK DATA INSTEAD →
+                 </button>
+               )}
+             </div>
+           )}
+        </section>
+
+        {trips.length > 0 ? (
+          <div className="space-y-12">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+               {[
+                 { label: "Analyzed Trips", val: trips.length, icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" },
+                 { label: "Total Distance", val: `${totalDist.toFixed(1)} km`, icon: "M13 10V3L4 14h7v7l9-11h-7z" },
+                 { label: "Avg Safety Score", val: avgScore, icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
+                 { label: "High Risk Flags", val: highRiskCount, icon: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z", color: highRiskCount > 0 ? 'text-rose-600' : '' },
+               ].map((s, i) => (
+                 <div key={i} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                    <div className="flex items-center justify-between mb-2">
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{s.label}</span>
+                       <svg width="20" height="20" fill="none" viewBox="0 0 24 24" className="text-slate-300">
+                          <path d={s.icon} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                       </svg>
+                    </div>
+                    <p className={`text-2xl font-black ${s.color || 'text-slate-900'}`}>{s.val}</p>
+                 </div>
+               ))}
             </div>
-          )}
-        </div>
 
-        {/* ── EXECUTIVE SUMMARY (shown after data loads) ── */}
-        {trips.length > 0 && (
-          <>
-            <div className="mb-6">
-              <h2 className="text-base font-bold text-gray-800 mb-0.5">Executive summary</h2>
-              <p className="text-xs text-gray-400 mb-4">
-                Fetched {trips.length} trips · Generated: {fetchedAt}
-              </p>
-              <div className="flex border border-gray-200 rounded-lg overflow-hidden divide-x divide-gray-200 flex-wrap">
-                {[
-                  { label: "Trips", value: String(trips.length), sub: `${highRisk} high-risk` },
-                  { label: "Distance", value: `${totalKm.toFixed(0)} km`, sub: "total" },
-                  { label: "Avg safety score", value: String(avgScore), sub: "fleet benchmark" },
-                  { label: "High risk", value: String(highRisk), sub: "score < 60" },
-                  {
-                    label: "Total idle",
-                    value: `${Math.round(trips.reduce((s, t) => s + t.idlingSec, 0) / 60)} min`,
-                    sub: "across all trips",
-                  },
-                ].map((s) => (
-                  <div key={s.label} className="flex-1 min-w-[120px] px-4 py-3">
-                    <p className="text-[11px] text-gray-500 mb-0.5">{s.label}</p>
-                    <p className="text-2xl font-bold text-gray-900 leading-tight">{s.value}</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">{s.sub}</p>
-                  </div>
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-black tracking-tight flex items-center gap-3">
+                  Trip Execution Logs
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-600 text-[10px] font-black rounded uppercase">Live Feed</span>
+                </h3>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Sync: {lastFetched}</p>
+              </div>
+
+              
+              <div className="grid grid-cols-1 gap-0">
+                {safeTrips.map((trip, idx) => (
+                  <TripCard key={trip.id || idx} trip={trip as any} index={idx} />
                 ))}
               </div>
             </div>
-
-            {/* ── TRIP CARDS ── */}
-            <div ref={reportRef}>
-              <div className="mb-4 flex items-baseline justify-between">
-                <h2 className="text-base font-bold text-gray-800">Trip details</h2>
-              </div>
-
-              {trips.map((trip, i) => (
-                <TripCard key={trip.id ?? i} trip={trip} index={i} />
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* ── EMPTY STATE ── */}
-        {!loading && trips.length === 0 && !error && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <svg width="48" height="48" fill="none" viewBox="0 0 24 24" className="text-gray-200 mb-4">
-              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H7v-2h5v2zm5-4H7v-2h10v2zm0-4H7V7h10v2z" fill="currentColor"/>
-            </svg>
-            <p className="text-sm text-gray-400 font-medium">No data yet</p>
-            <p className="text-xs text-gray-300 mt-1">Fill in the form above and click "Generate Report"</p>
+          </div>
+        ) : !isLoading && (
+          <div className="py-24 text-center">
+             <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg width="40" height="40" fill="none" viewBox="0 0 24 24" className="text-slate-300">
+                  <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+             </div>
+             <h3 className="text-xl font-bold text-slate-900 mb-2">Ready to Process Data</h3>
+             <p className="text-slate-500 max-w-sm mx-auto text-sm leading-relaxed">
+               Click the button above to start the analytics engine and fetch real-time trip reports using your secure token.
+             </p>
           </div>
         )}
 
-        {loading && (
-          <div className="flex items-center justify-center py-20 gap-3">
-            <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-700 rounded-full animate-spin" />
-            <p className="text-sm text-gray-500">Fetching trip data…</p>
-          </div>
-        )}
+        <footer className="mt-24 pt-8 border-t border-slate-200 text-center">
+           <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">
+             GeekBro MMC &copy; 2026 AI Fleet Telematics System
+           </p>
+        </footer>
 
       </div>
     </div>
