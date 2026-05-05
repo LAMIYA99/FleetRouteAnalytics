@@ -25,7 +25,6 @@ interface Trip {
   violations?: { type: string; severity: string; time: string; location?: any }[];
 }
 
-// --- Helpers ---
 const getScoreSeverity = (score: number) => {
   if (score >= 80) return { label: "Excellent", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" };
   if (score >= 60) return { label: "Average", cls: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-500" };
@@ -34,7 +33,6 @@ const getScoreSeverity = (score: number) => {
 
 const formatNum = (n: number | undefined) => (n !== undefined ? n.toFixed(1) : "—");
 
-// --- Components ---
 function RouteMapPlaceholder() {
   return (
     <div className="w-full h-full min-h-[180px] bg-slate-50 flex flex-col items-center justify-center gap-3 border border-dashed border-slate-200 rounded-xl transition-colors hover:bg-slate-100/50">
@@ -53,7 +51,6 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden mb-6 shadow-sm hover:shadow-md transition-shadow">
-      {/* Card Header */}
       <div className="flex items-center gap-4 px-6 py-4 border-b border-slate-100 bg-slate-50/30 flex-wrap">
         <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">TRIP #{index + 1}</span>
         <div className="flex items-center gap-2">
@@ -155,7 +152,6 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
   );
 }
 
-// --- HTML Export Builder ---
 function buildExportHtml(trips: Trip[], meta: { driver: string; generated: string }): string {
   const totalDist = trips.reduce((s, t) => s + t.distanceKm, 0);
   const avgScore = trips.length ? Math.round(trips.reduce((s, t) => s + t.score, 0) / trips.length) : 0;
@@ -268,7 +264,6 @@ function buildExportHtml(trips: Trip[], meta: { driver: string; generated: strin
   `;
 }
 
-// --- Main Component ---
 export default function FleetAnalytics() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [reportUrl, setReportUrl] = useState("https://dev-app.geekbro.ai/be-service/drivers/45fc54d7-2325-486a-b34e-46ab27461190/trips?page=0&size=100");
@@ -316,7 +311,7 @@ export default function FleetAnalytics() {
     setErrorMsg(null);
     setIsApiDown(false);
     try {
-      // Extract driver ID from URL if possible, otherwise use default from curl
+
       const driverIdMatch = reportUrl.match(/\/drivers\/([^\/]+)\//);
       const driverId = driverIdMatch ? driverIdMatch[1] : "45fc54d7-2325-486a-b34e-46ab27461190";
 
@@ -349,14 +344,11 @@ export default function FleetAnalytics() {
         throw new Error(result.error || result.details?.error || `Fetch failed: ${response.statusText}`);
       }
 
-      // --- Robust Data Parsing ---
       let rawTrips: any[] | null = null;
 
-      // 1. Check if direct array
       if (Array.isArray(result)) {
         rawTrips = result;
       } 
-      // 2. Check common fields
       else if (Array.isArray(result.data)) {
         rawTrips = result.data;
       }
@@ -366,15 +358,12 @@ export default function FleetAnalytics() {
       else if (Array.isArray(result.items)) {
         rawTrips = result.items;
       }
-      // 3. Recursive search for any array in the response (max depth 2)
       else {
         const findArray = (obj: any): any[] | null => {
           if (!obj || typeof obj !== 'object') return null;
-          // Check top level
           const topArr = Object.values(obj).find(v => Array.isArray(v));
           if (topArr) return topArr as any[];
           
-          // Check one level deeper
           for (const key in obj) {
             if (obj[key] && typeof obj[key] === 'object') {
               const innerArr = Object.values(obj[key]).find(v => Array.isArray(v));
@@ -416,7 +405,6 @@ export default function FleetAnalytics() {
   };
 
   const safeTrips = (trips || []).map((t: any) => {
-    // Helper to extract value from potential string/number
     const num = (v: any): number => {
       if (typeof v === 'number') return isNaN(v) ? 0 : v;
       if (typeof v === 'string') {
@@ -426,7 +414,6 @@ export default function FleetAnalytics() {
       return 0;
     };
     
-    // Helper to format address objects safely
     const addr = (v: any): string => {
       if (!v) return "—";
       if (typeof v === 'string') return v;

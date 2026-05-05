@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); 
 
     let res: Response;
     try {
