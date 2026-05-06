@@ -267,7 +267,7 @@ function buildExportHtml(trips: Trip[], meta: { driver: string; generated: strin
 export default function FleetAnalytics() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [reportUrl, setReportUrl] = useState("https://dev-app.geekbro.ai/be-service/drivers/45fc54d7-2325-486a-b34e-46ab27461190/trips?page=0&size=100");
-  const [token, setToken] = useState("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJsYW1peWVhbGl6YWRlIiwiY29tcGFueUlkIjoiYzM5ODM1YWUtNTQwOC00YmQ1LTg4N2EtNjZkNWZhNzhkZWZiIiwicm9sZSI6IlRFQ0hfQURNSU4iLCJleHAiOjE3Nzc5OTQwNDl9.PxnA5kd2bLJ8eGvVghlf3JywL_BOGTOt5AZ0VjoVr6c");
+  const [token, setToken] = useState("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJsYW1peWVhbGl6YWRlIiwiY29tcGFueUlkIjoiYzM5ODM1YWUtNTQwOC00YmQ1LTg4N2EtNjZkNWZhNzhkZWZiIiwicm9sZSI6IlRFQ0hfQURNSU4iLCJleHAiOjE3NzgwNzI4NzB9.1QNgHUdxmp7nBzFJwoM852xLu5Cn3U4xk_t5s1vwXHU");
   
   const [driverFilter, setDriverFilter] = useState("");
   const [trips, setTrips] = useState<Trip[]>([]);
